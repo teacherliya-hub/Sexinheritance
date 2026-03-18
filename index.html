@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人類性別遺傳實驗室</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+            user-select: none;
+        }
+
+        :root {
+            --father-color: #0ea5e9; 
+            --father-bg: #e0f2fe; 
+            --mother-color: #ec4899; 
+            --mother-bg: #fdf2f8; 
+        }
+
+        /* 卡片設計 */
+        .card-container {
+            perspective: 1000px;
+            width: 110px;
+            height: 120px;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .card-inner.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            box-shadow: 0 8px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        .card-front {
+            background-color: white;
+            border: 2px solid #e2e8f0;
+        }
+
+        .card-back { transform: rotateY(180deg); }
+        .father-card .card-back { background-color: var(--father-bg); border: 3px solid var(--father-color); }
+        .mother-card .card-back { background-color: var(--mother-bg); border: 3px solid var(--mother-color); }
+
+        /* 棋盤格：縮減高度 (Row 高度從 150px 降至 115px) */
+        .punnett-square {
+            display: grid;
+            grid-template-columns: 80px 150px 150px;
+            grid-template-rows: 80px 115px 115px; 
+            gap: 15px;
+        }
+
+        .punnett-cell {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.2s;
+            overflow: visible;
+        }
+
+        .drop-zone { border: 2px dashed #cbd5e1; background-color: #f8fafc; }
+        .father-slot { background-color: #f0f9ff; border-color: #bae6fd; }
+        .mother-slot { background-color: #fff1f2; border-color: #fecdd3; }
+
+        /* 染色體視覺 */
+        .chromosome-visual {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            transition: transform 0.1s;
+        }
+        .chromosome-visual:active { transform: scale(1.1); }
+
+        .chr-label {
+            font-size: 1.8rem;
+            font-weight: 900;
+            line-height: 1;
+            margin-left: 8px;
+            text-shadow: 1px 1px 0px white;
+        }
+
+        .pheno-btn {
+            padding: 2px 10px;
+            font-size: 0.8rem;
+            border-radius: 8px;
+            border: 1.5px solid #e2e8f0;
+            background: white;
+            font-weight: 900;
+            transition: all 0.2s;
+        }
+        .pheno-btn:hover { border-color: #94a3b8; background: #f1f5f9; }
+        .active-male { border-color: var(--father-color); color: var(--father-color); background: #f0f9ff; }
+        .active-female { border-color: var(--mother-color); color: var(--mother-color); background: #fff1f2; }
+
+        .bar-transition { transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <header class="max-w-5xl mx-auto mb-8 text-center">
+        <h1 class="text-4xl font-black text-slate-800 mb-2">人類性別遺傳實驗室</h1>
+        <p class="text-slate-500 font-bold tracking-widest italic">模擬性染色體隨機分配與受精過程</p>
+    </header>
+
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
+        
+        <!-- 左側：控制與實驗區 (8/12) -->
+        <div class="lg:col-span-8 space-y-6">
+            
+            <section class="bg-white p-6 rounded-[28px] shadow-sm border border-slate-200 flex items-center justify-between">
+                <div class="flex items-center gap-5">
+                    <div class="bg-indigo-600 text-white p-3.5 rounded-xl shadow-lg shadow-indigo-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22c1.25-1.67 3.25-2.67 5.5-2.67s4.25 1 5.5 2.67M12 22c1.25-1.67 3.25-2.67 5.5-2.67s4.25 1 5.5 2.67M8 8a4 4 0 1 0 0-8 4 4 0 0 0 0 8M18 8a4 4 0 1 0 0-8 4 4 0 0 0 0 8"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-800 tracking-tight">親代組合：父親 (XY) × 母親 (XX)</h2>
+                        <p class="text-slate-400 font-bold text-sm">受精卵的性別由父親精子所攜帶的染色體決定</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 實驗操作區 -->
+            <section class="bg-white p-8 rounded-[32px] shadow-xl border-2 border-indigo-50">
+                <h2 class="text-xl font-black mb-6 flex items-center gap-3">
+                    <span class="bg-indigo-600 text-white w-9 h-9 rounded-full flex items-center justify-center text-base">1</span>
+                    隨機受精模擬
+                </h2>
+                
+                <div class="flex flex-col items-center gap-8">
+                    <div class="flex justify-around w-full max-w-2xl">
+                        <div class="text-center">
+                            <p class="text-xs font-black text-blue-500 mb-3 tracking-widest uppercase">♂ 父親的精子庫</p>
+                            <div class="flex gap-4">
+                                <div id="f-card-0" class="card-container father-card" onclick="flipCard('f', 0)">
+                                    <div class="card-inner" id="f-inner-0">
+                                        <div class="card-front"><svg width="50" height="50" viewBox="0 0 100 100" class="text-blue-200"><circle cx="40" cy="50" r="15" fill="currentColor"/><path d="M55 50 Q75 40 85 55 T95 45" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"/></svg></div>
+                                        <div class="card-back" id="f-val-0"></div>
+                                    </div>
+                                </div>
+                                <div id="f-card-1" class="card-container father-card" onclick="flipCard('f', 1)">
+                                    <div class="card-inner" id="f-inner-1">
+                                        <div class="card-front"><svg width="50" height="50" viewBox="0 0 100 100" class="text-blue-200"><circle cx="40" cy="50" r="15" fill="currentColor"/><path d="M55 50 Q75 40 85 55 T95 45" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"/></svg></div>
+                                        <div class="card-back" id="f-val-1"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center">
+                            <p class="text-xs font-black text-pink-500 mb-3 tracking-widest uppercase">♀ 母親的卵子庫</p>
+                            <div class="flex gap-4">
+                                <div id="m-card-0" class="card-container mother-card" onclick="flipCard('m', 0)">
+                                    <div class="card-inner" id="m-inner-0">
+                                        <div class="card-front"><svg width="50" height="50" viewBox="0 0 100 100" class="text-pink-200"><circle cx="50" cy="50" r="25" fill="none" stroke="currentColor" stroke-width="4" stroke-dasharray="4 2"/><circle cx="50" cy="50" r="15" fill="currentColor"/></svg></div>
+                                        <div class="card-back" id="m-val-0"></div>
+                                    </div>
+                                </div>
+                                <div id="m-card-1" class="card-container mother-card" onclick="flipCard('m', 1)">
+                                    <div class="card-inner" id="m-inner-1">
+                                        <div class="card-front"><svg width="50" height="50" viewBox="0 0 100 100" class="text-pink-200"><circle cx="50" cy="50" r="25" fill="none" stroke="currentColor" stroke-width="4" stroke-dasharray="4 2"/><circle cx="50" cy="50" r="15" fill="currentColor"/></svg></div>
+                                        <div class="card-back" id="m-val-1"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="combination-area" class="w-full max-w-md bg-slate-50 rounded-[32px] p-6 border-4 border-dashed border-slate-200 text-center min-h-[170px] flex flex-col items-center justify-center transition-all">
+                        <div id="combo-display" class="hidden flex items-center gap-5 mb-4">
+                            <div id="res-f" class="scale-100"></div>
+                            <div class="flex flex-col items-center">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                            </div>
+                            <div id="res-m" class="scale-100"></div>
+                        </div>
+                        <div id="pheno-question" class="hidden space-y-4">
+                            <p class="font-black text-slate-700 text-base">請問此子代的性別是？</p>
+                            <div class="flex gap-3 justify-center">
+                                <button onclick="submitAnswer('男孩')" class="px-6 py-3 bg-white border-2 border-blue-200 rounded-xl font-black hover:border-blue-500 text-blue-600 shadow-sm transition-all transform active:scale-95">男孩 (♂ XY)</button>
+                                <button onclick="submitAnswer('女孩')" class="px-6 py-3 bg-white border-2 border-pink-200 rounded-xl font-black hover:border-pink-500 text-pink-600 shadow-sm transition-all transform active:scale-95">女孩 (♀ XX)</button>
+                            </div>
+                        </div>
+                        <p id="instruction" class="text-slate-400 font-bold text-base animate-pulse">請點擊上方配子卡片進行隨機結合</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-5 border-t border-slate-100 flex justify-between items-center">
+                    <p class="text-slate-500 font-bold">實驗次數：<span id="trial-count" class="text-indigo-600 text-2xl font-black ml-2">0</span></p>
+                    <button id="finish-btn" onclick="unlockTheory()" class="hidden px-8 py-3 bg-slate-800 text-white font-black rounded-xl shadow-xl hover:bg-black transition-all transform hover:-translate-y-1">結束實驗並開啟棋盤推論 🏁</button>
+                </div>
+            </section>
+
+            <!-- 性別棋盤 -->
+            <section id="theory-section" class="hidden bg-white p-8 rounded-[40px] shadow-2xl border-4 border-amber-100 opacity-0 transition-all duration-700">
+                <div class="flex justify-between items-start mb-6">
+                    <h2 class="text-xl font-black flex items-center gap-3 text-amber-700">
+                        <span class="bg-amber-600 text-white w-9 h-9 rounded-full flex items-center justify-center text-base">2</span>
+                        建立性別遺傳棋盤方格
+                    </h2>
+                    <p id="theory-hint" class="text-xs font-black bg-amber-50 text-amber-600 px-5 py-2 rounded-full border border-amber-200">
+                        請將配子從池中拉至邊緣方格
+                    </p>
+                </div>
+
+                <div class="flex flex-col xl:flex-row gap-8 items-center justify-center">
+                    <!-- 配子池：縮減寬度 (min-w從280px降至220px) -->
+                    <div class="flex flex-col gap-4 w-full xl:w-auto">
+                        <div class="p-3 bg-blue-50/50 rounded-2xl border-2 border-blue-100 min-w-[220px]">
+                            <p class="text-[10px] font-black text-blue-600 mb-2 text-center tracking-widest uppercase italic">♂ 父親配子池</p>
+                            <div id="theory-pool-f" class="flex gap-4 justify-center"></div>
+                        </div>
+                        <div class="p-3 bg-pink-50/50 rounded-2xl border-2 border-pink-100 min-w-[220px]">
+                            <p class="text-[10px] font-black text-pink-600 mb-2 text-center tracking-widest uppercase italic">♀ 母親配子池</p>
+                            <div id="theory-pool-m" class="flex gap-4 justify-center"></div>
+                        </div>
+                    </div>
+
+                    <!-- 棋盤格 -->
+                    <div class="punnett-square">
+                        <div class="flex items-center justify-center font-black text-slate-300 italic text-xl">F1</div>
+                        <div id="slot-f1" class="punnett-cell drop-zone father-slot" ondrop="handleDrop(event, 'f1')" ondragover="allowDrop(event)"></div>
+                        <div id="slot-f2" class="punnett-cell drop-zone father-slot" ondrop="handleDrop(event, 'f2')" ondragover="allowDrop(event)"></div>
+                        <div id="slot-m1" class="punnett-cell drop-zone mother-slot" ondrop="handleDrop(event, 'm1')" ondragover="allowDrop(event)"></div>
+                        <div id="cell-00" class="punnett-cell bg-slate-50/30" ondrop="handleDrop(event, 'c00')" ondragover="allowDrop(event)"></div>
+                        <div id="cell-01" class="punnett-cell bg-slate-50/30" ondrop="handleDrop(event, 'c01')" ondragover="allowDrop(event)"></div>
+                        <div id="slot-m2" class="punnett-cell drop-zone mother-slot" ondrop="handleDrop(event, 'm2')" ondragover="allowDrop(event)"></div>
+                        <div id="cell-10" class="punnett-cell bg-slate-50/30" ondrop="handleDrop(event, 'c10')" ondragover="allowDrop(event)"></div>
+                        <div id="cell-11" class="punnett-cell bg-slate-50/30" ondrop="handleDrop(event, 'c11')" ondragover="allowDrop(event)"></div>
+                    </div>
+
+                    <!-- 按鈕：縮減寬度 (px-10降至px-6) -->
+                    <div class="flex flex-col gap-3">
+                        <button id="verify-theory-btn" onclick="checkFullTheory()" class="py-4 px-6 bg-amber-500 text-white font-black rounded-2xl hover:bg-amber-600 shadow-xl transition-all transform active:scale-95 disabled:opacity-30 disabled:pointer-events-none">
+                            驗證棋盤數據
+                        </button>
+                        <button onclick="resetTheoryUI()" class="py-2 px-6 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200 transition">
+                            重置棋盤
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 右側：統計看板 (4/12) -->
+        <div class="lg:col-span-4">
+            <section class="bg-slate-900 text-white p-8 rounded-[40px] shadow-2xl border-[10px] border-slate-800 lg:mt-80 transition-all duration-500">
+                <h3 class="text-xl font-black mb-6 flex items-center gap-3">📊 遺傳數據統計</h3>
+                
+                <div class="space-y-8">
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-end">
+                            <span class="font-black text-lg tracking-tight">男孩 (♂ XY) <span id="theory-pct-男孩" class="text-xs text-indigo-400 font-medium block mt-1 hidden"></span></span>
+                            <span id="count-男孩" class="text-blue-400 font-black text-2xl">0 次</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-9 rounded-2xl overflow-hidden flex relative border-2 border-slate-700">
+                            <div id="bar-男孩" class="bg-gradient-to-r from-blue-600 to-cyan-400 h-full bar-transition" style="width: 0%"></div>
+                            <div id="theory-mark-男孩" class="absolute top-0 bottom-0 border-r-4 border-white/60 hidden shadow-[0_0_15px_white]"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-end">
+                            <span class="font-black text-lg tracking-tight">女孩 (♀ XX) <span id="theory-pct-女孩" class="text-xs text-pink-400 font-medium block mt-1 hidden"></span></span>
+                            <span id="count-女孩" class="text-pink-400 font-black text-2xl">0 次</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-9 rounded-2xl overflow-hidden flex relative border-2 border-slate-700">
+                            <div id="bar-女孩" class="bg-gradient-to-r from-pink-600 to-rose-400 h-full bar-transition" style="width: 0%"></div>
+                            <div id="theory-mark-女孩" class="absolute top-0 bottom-0 border-r-4 border-white/60 hidden shadow-[0_0_15px_white]"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 理論比例：移到長條圖下方，並分為兩行 -->
+                <div id="theory-ratio-summary" class="mt-8 p-5 bg-indigo-500/20 rounded-3xl text-center font-black text-indigo-300 hidden border border-indigo-500/40 animate-pulse leading-relaxed">
+                </div>
+
+                <div id="theory-legend" class="mt-12 pt-8 border-t border-slate-800 hidden">
+                    <div class="flex items-center gap-3 text-xs text-slate-500 font-bold mb-5 uppercase tracking-widest">
+                        <div class="w-1.5 h-5 bg-white/40 rounded-full"></div>
+                        <span>孟德爾理論推論值</span>
+                    </div>
+                    <div class="p-5 bg-slate-800/50 rounded-[28px] text-sm text-slate-400 leading-relaxed italic border border-slate-800">
+                        "在大量重複實驗下，男孩與女孩出現的機率會趨近於 1 : 1。"
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-10 py-4 bg-slate-900/90 backdrop-blur-md text-white rounded-full font-black shadow-2xl opacity-0 transition-all pointer-events-none z-50 border border-white/10"></div>
+
+    <script>
+        function getChrSVG(type, color) {
+            if (type === 'X') {
+                return `<svg width="30" height="40" viewBox="0 0 40 60" fill="${color}">
+                    <path d="M14 5 Q20 5 26 5 L26 25 Q20 28 14 25 Z" />
+                    <path d="M14 35 Q20 32 26 35 L26 55 Q20 55 14 55 Z" />
+                    <rect x="14" y="25" width="12" height="10" rx="2" opacity="0.8"/>
+                    <path d="M16 8 L16 22 M24 8 L24 22" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+                    <path d="M16 38 L16 52 M24 38 L24 52" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+                </svg>`;
+            } else {
+                return `<svg width="30" height="40" viewBox="0 0 40 60" fill="${color}">
+                    <path d="M14 15 Q20 15 26 15 L26 30 Q20 32 14 30 Z" />
+                    <path d="M14 38 Q20 36 26 38 L26 48 Q20 48 14 48 Z" />
+                    <rect x="14" y="30" width="12" height="8" rx="2" opacity="0.8"/>
+                    <path d="M18 18 L18 28" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+                </svg>`;
+            }
+        }
+
+        const state = {
+            father: ['X', 'Y'], mother: ['X', 'X'],
+            current: { f: null, m: null },
+            stats: { 男孩: 0, 女孩: 0, total: 0 },
+            theory: { f1:null, f2:null, m1:null, m2:null, cells: {'00':{f:null, m:null, p:null}, '01':{f:null, m:null, p:null}, '10':{f:null, m:null, p:null}, '11':{f:null, m:null, p:null}} }
+        };
+
+        function createChrVisual(val, side) {
+            const color = side === 'f' ? '#0ea5e9' : '#ec4899';
+            return `
+                <div class="chromosome-visual">
+                    ${getChrSVG(val, color)}
+                    <span class="chr-label" style="color: ${color}">${val}</span>
+                </div>
+            `;
+        }
+
+        window.onload = resetExperiment;
+
+        function resetExperiment() {
+            state.stats = { 男孩: 0, 女孩: 0, total: 0 };
+            updateStatsUI(); resetCards();
+            document.getElementById('trial-count').innerText = "0";
+            document.getElementById('finish-btn').classList.add('hidden');
+            document.getElementById('theory-section').classList.add('hidden');
+            document.getElementById('theory-ratio-summary').classList.add('hidden');
+            document.querySelectorAll('.border-r-4').forEach(el => el.classList.add('hidden'));
+            ['男孩', '女孩'].forEach(t => document.getElementById(`theory-pct-${t}`).classList.add('hidden'));
+            resetTheoryUI();
+        }
+
+        function resetCards() {
+            state.current = { f: null, m: null };
+            document.querySelectorAll('.card-inner').forEach(el => el.classList.remove('flipped'));
+            document.getElementById('combo-display').classList.add('hidden');
+            document.getElementById('pheno-question').classList.add('hidden');
+            document.getElementById('instruction').classList.remove('hidden');
+            const fS = [...state.father].sort(() => Math.random() - 0.5);
+            const mS = [...state.mother].sort(() => Math.random() - 0.5);
+            document.getElementById('f-val-0').innerHTML = createChrVisual(fS[0], 'f');
+            document.getElementById('f-val-1').innerHTML = createChrVisual(fS[1], 'f');
+            document.getElementById('m-val-0').innerHTML = createChrVisual(mS[0], 'm');
+            document.getElementById('m-val-1').innerHTML = createChrVisual(mS[1], 'm');
+            state.fTemp = fS; state.mTemp = mS;
+        }
+
+        function flipCard(side, idx) {
+            if (state.current[side] !== null) return;
+            const inner = document.getElementById(`${side}-inner-${idx}`);
+            inner.classList.add('flipped');
+            state.current[side] = (side === 'f') ? state.fTemp[idx] : state.mTemp[idx];
+            if (state.current.f && state.current.m) {
+                document.getElementById('instruction').classList.add('hidden');
+                document.getElementById('combo-display').classList.remove('hidden');
+                document.getElementById('res-f').innerHTML = createChrVisual(state.current.f, 'f');
+                document.getElementById('res-m').innerHTML = createChrVisual(state.current.m, 'm');
+                setTimeout(() => document.getElementById('pheno-question').classList.remove('hidden'), 600);
+            }
+        }
+
+        function submitAnswer(choice) {
+            const correct = (state.current.f === 'Y') ? '男孩' : '女孩';
+            if (choice === correct) {
+                state.stats[correct]++; state.stats.total++;
+                updateStatsUI(); showToast(`正確！ ✅`);
+                if (state.stats.total >= 8) document.getElementById('finish-btn').classList.remove('hidden');
+                setTimeout(resetCards, 1200);
+            } else { showToast("判斷有誤！ ❌"); }
+        }
+
+        function updateStatsUI() {
+            ['男孩', '女孩'].forEach(t => {
+                const pct = state.stats.total > 0 ? (state.stats[t] / state.stats.total * 100) : 0;
+                document.getElementById(`count-${t}`).innerText = `${state.stats[t]} 次 (${pct.toFixed(0)}%)`;
+                document.getElementById(`bar-${t}`).style.width = `${pct}%`;
+            });
+            document.getElementById('trial-count').innerText = state.stats.total;
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg; t.style.opacity = "1";
+            setTimeout(() => t.style.opacity = "0", 2500);
+        }
+
+        function unlockTheory() {
+            const sec = document.getElementById('theory-section');
+            sec.classList.remove('hidden');
+            setTimeout(() => sec.classList.add('opacity-100'), 50);
+            sec.scrollIntoView({ behavior: 'smooth' });
+            renderTheoryPools();
+        }
+
+        function renderTheoryPools() {
+            const pf = document.getElementById('theory-pool-f');
+            const pm = document.getElementById('theory-pool-m');
+            pf.innerHTML = ""; pm.innerHTML = "";
+            state.father.forEach((v, i) => pf.appendChild(createDraggableChr(v, 'f', `p-f-${i}`)));
+            state.mother.forEach((v, i) => pm.appendChild(createDraggableChr(v, 'm', `p-m-${i}`)));
+        }
+
+        function createDraggableChr(val, side, id) {
+            const el = document.createElement('div');
+            el.innerHTML = createChrVisual(val, side);
+            el.draggable = true; el.id = id;
+            el.dataset.val = val; el.dataset.side = side; el.dataset.src = "pool";
+            el.ondragstart = (e) => {
+                e.dataTransfer.setData("id", id);
+                e.dataTransfer.setData("val", val);
+                e.dataTransfer.setData("side", side);
+                e.dataTransfer.setData("src", "pool");
+            };
+            return el;
+        }
+
+        function resetTheoryUI() {
+            state.theory = { f1:null, f2:null, m1:null, m2:null, cells: {'00':{f:null, m:null, p:null}, '01':{f:null, m:null, p:null}, '10':{f:null, m:null, p:null}, '11':{f:null, m:null, p:null}} };
+            document.querySelectorAll('.punnett-cell').forEach(el => { el.innerHTML = ''; el.classList.add('drop-zone'); });
+            document.getElementById('theory-hint').innerText = "請將配子拖曳至邊緣方格";
+            document.getElementById('verify-theory-btn').disabled = false;
+            document.getElementById('theory-ratio-summary').classList.add('hidden');
+            renderTheoryPools();
+        }
+
+        function allowDrop(e) { e.preventDefault(); }
+        
+        function handleDrop(e, slot) {
+            e.preventDefault();
+            const val = e.dataTransfer.getData("val");
+            const side = e.dataTransfer.getData("side");
+            const src = e.dataTransfer.getData("src");
+            const srcId = e.dataTransfer.getData("id");
+            const target = e.target.closest('.punnett-cell');
+            if (!target) return;
+
+            if (src === 'pool' && (slot.startsWith('f') || slot.startsWith('m'))) {
+                if (slot.startsWith('f') && side !== 'f') return showToast("父親配子放在上方喔！");
+                if (slot.startsWith('m') && side !== 'm') return showToast("母親配子放在左側喔！");
+                state.theory[slot] = val;
+                target.innerHTML = createChrVisual(val, side);
+                const clone = target.querySelector('.chromosome-visual');
+                clone.draggable = true; clone.dataset.src = "header"; clone.id = `h-${slot}`;
+                clone.ondragstart = (ev) => {
+                    ev.dataTransfer.setData("id", clone.id);
+                    ev.dataTransfer.setData("val", val);
+                    ev.dataTransfer.setData("side", side);
+                    ev.dataTransfer.setData("src", "header");
+                };
+                target.classList.remove('drop-zone');
+                return;
+            }
+
+            if (src === 'header' && slot.startsWith('c')) {
+                const id = slot.substring(1);
+                const r = parseInt(id[0]), c = parseInt(id[1]);
+                const hSlot = srcId.split('-')[1];
+                if (side === 'f') {
+                    if (c !== (parseInt(hSlot[1])-1)) return showToast("垂直拉入！");
+                    state.theory.cells[id].f = val;
+                } else {
+                    if (r !== (parseInt(hSlot[1])-1)) return showToast("水平拉入！");
+                    state.theory.cells[id].m = val;
+                }
+                renderTheoryCell(id);
+            }
+        }
+
+        function renderTheoryCell(id) {
+            const cell = document.getElementById(`cell-${id}`);
+            const data = state.theory.cells[id];
+            cell.innerHTML = `<div class="flex flex-row items-center gap-2 scale-75 overflow-visible">${data.f ? createChrVisual(data.f, 'f') : ''}${data.m ? createChrVisual(data.m, 'm') : ''}</div>`;
+            if (data.f && data.m) {
+                if (!data.p) {
+                    const wrap = document.createElement('div');
+                    wrap.className = "flex gap-1.5 mt-1.5";
+                    ['男孩', '女孩'].forEach(t => {
+                        const b = document.createElement('button');
+                        b.className = "pheno-btn"; b.innerText = t;
+                        b.onclick = () => {
+                            const correct = (data.f === 'Y' || data.m === 'Y') ? '男孩' : '女孩';
+                            if (t === correct) { data.p = t; renderTheoryCell(id); } else showToast("判斷錯誤！");
+                        };
+                        wrap.appendChild(b);
+                    });
+                    cell.appendChild(wrap);
+                } else {
+                    const badge = document.createElement('div');
+                    badge.className = `mt-1 text-xs font-black px-3 py-0.5 rounded-full border-2 active-${data.p === '男孩' ? 'male' : 'female'}`;
+                    badge.innerText = `${data.p}`; cell.appendChild(badge);
+                }
+            }
+        }
+
+        function checkFullTheory() {
+            const { cells } = state.theory;
+            if (Object.values(cells).some(c => !c.p)) return showToast("請完成所有子代判斷！");
+            const counts = { 男孩: 0, 女孩: 0 };
+            Object.values(cells).forEach(c => counts[c.p]++);
+            const summary = document.getElementById('theory-ratio-summary');
+            // 修改比例摘要顯示：分為兩行並加強排版
+            summary.innerHTML = `<div class="text-xs uppercase tracking-widest opacity-70 mb-1">理論推論比例</div><div class="text-xl">男孩 : 女孩 = ${counts.男孩} : ${counts.女孩} (1 : 1)</div>`;
+            summary.classList.remove('hidden');
+            ['男孩', '女孩'].forEach(t => {
+                const mark = document.getElementById(`theory-mark-${t}`);
+                const label = document.getElementById(`theory-pct-${t}`);
+                const theoryVal = (counts[t] / 4) * 100;
+                mark.style.left = `${theoryVal}%`; mark.classList.remove('hidden');
+                label.innerText = `(理論: ${theoryVal}%)`; label.classList.remove('hidden');
+            });
+            document.getElementById('verify-theory-btn').disabled = true;
+            document.getElementById('theory-legend').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
