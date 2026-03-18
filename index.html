@@ -152,7 +152,7 @@
             <section class="bg-white p-8 rounded-[32px] shadow-xl border-2 border-indigo-50">
                 <h2 class="text-xl font-black mb-6 flex items-center gap-3">
                     <span class="bg-indigo-600 text-white w-9 h-9 rounded-full flex items-center justify-center text-base">1</span>
-                    隨機受精模擬：產生至少8個子代後，用棋盤方格推估理論值做比較。
+                    隨機受精模擬：產生至少8個子代後，與理論值比較。
                 </h2>
                 
                 <div class="flex flex-col items-center gap-8">
@@ -259,7 +259,7 @@
 
                     <div class="flex flex-col gap-3">
                         <button id="verify-theory-btn" onclick="checkFullTheory()" class="py-4 px-6 bg-amber-500 text-white font-black rounded-2xl hover:bg-amber-600 shadow-xl transition-all transform active:scale-95 disabled:opacity-30 disabled:pointer-events-none">
-                            驗證理論數據
+                            驗證棋盤數據
                         </button>
                         <button onclick="resetTheoryUI()" class="py-2 px-6 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200 transition">
                             重置棋盤
@@ -272,8 +272,14 @@
         <!-- 右側：統計看板 (4/12) -->
         <div class="lg:col-span-4">
             <section class="bg-slate-900 text-white p-8 rounded-[40px] shadow-2xl border-[10px] border-slate-800 lg:mt-80 transition-all duration-500">
-                <h3 class="text-xl font-black mb-6 flex items-center gap-3">📊 遺傳數據統計</h3>
+                <h3 class="text-xl font-black mb-1 flex items-center gap-3">📊 遺傳數據統計</h3>
                 
+                <!-- 新增的小字提醒 -->
+                <p class="text-[11px] font-bold text-slate-500 mb-6 flex items-center gap-1.5 px-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    實驗後要記得驗證棋盤方格理論值喔！
+                </p>
+
                 <div class="space-y-8">
                     <div class="space-y-3">
                         <div class="flex justify-between items-end">
@@ -318,7 +324,7 @@
     <footer class="max-w-7xl mx-auto mt-16 pt-8 pb-12 border-t border-slate-200 text-center">
         <div class="inline-flex items-center gap-3 px-6 py-2 bg-white rounded-full shadow-sm border border-slate-100">
             <span class="text-slate-400 text-sm font-medium italic">本教學工具由</span>
-            <span class="text-slate-800 text-sm font-black tracking-tight">Liya Wang</span>
+            <span class="text-slate-800 text-sm font-black tracking-tight">開發老師</span>
             <span class="text-indigo-400 text-xs">×</span>
             <span class="text-indigo-600 text-sm font-black">Gemini</span>
             <span class="text-slate-400 text-sm font-medium italic">共同協作開發</span>
